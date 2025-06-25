@@ -114,12 +114,22 @@ def get_genius_song_url(song_title, api_token):
     return None, "Song not found. Try another title."
 
 def scrape_lyrics_from_url(url):
-    page = requests.get(url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    }
+    page = requests.get(url, headers=headers)
     soup = BeautifulSoup(page.text, "html.parser")
-    # Genius lyrics are in <div> tags with data-lyrics-container="true"
+    # Try new Genius lyrics container
     lyrics_divs = soup.find_all("div", attrs={"data-lyrics-container": "true"})
-    lyrics = "\n".join([div.get_text(separator="\n") for div in lyrics_divs])
-    return lyrics.strip() if lyrics else None
+    if lyrics_divs:
+        lyrics = "\n".join([div.get_text(separator="\n") for div in lyrics_divs])
+        return lyrics.strip() if lyrics else None
+    # Fallback: try old Genius lyrics box
+    lyrics_box = soup.find("div", class_="lyrics")
+    if lyrics_box:
+        lyrics = lyrics_box.get_text(separator="\n")
+        return lyrics.strip() if lyrics else None
+    return None
 
 def generate_wordcloud(lyrics):
     wc = WordCloud(width=800, height=400, background_color='white', colormap='plasma').generate(lyrics)
